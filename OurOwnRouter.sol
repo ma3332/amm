@@ -1,23 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
-/*
-We recognize that DEX is essential for small/ medium project as small to promote their token
-As small/ medium projects cannot immediately have their token listed on big exchanges
-However, the new LP providers (i.e projects) need to have high credit. This will show projects commitment
-We dont want honey pot happened in our platform.
-Participants can truely join the decentrialized environment without worrying about the legitimate of the proposed project.
-We also realize that DEX is more reliable than crowd funding.
-Plus, we don't want arbitrage to take place
-*/
-/*
-1. Check Max Supply of token. Requirement is that most of them need to be deposited in the LP
-2. Check the value of the LP, 
-3. 
-*/
 
 pragma solidity >=0.6.12;
 
 import "./libraries/UniswapV2Library.sol";
-import "./libraries/SafeMath.sol";
 import "./libraries/TransferHelper.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUniswapV2Factory.sol";
@@ -25,8 +10,6 @@ import "./interfaces/IOurOwnLPERC20.sol";
 import "./interfaces/IWETH.sol";
 
 contract OurOwnRouter is IUniswapV2Router02 {
-    using SafeMathUniswap for uint256;
-
     address public immutable override factory;
     address public immutable override WETH;
 
@@ -682,9 +665,9 @@ contract OurOwnRouter is IUniswapV2Router02 {
                 (uint256 reserveInput, uint256 reserveOutput) = input == token0
                     ? (reserve0, reserve1)
                     : (reserve1, reserve0);
-                amountInput = IOurOwnLPERC20(input)
-                    .balanceOf(address(pair))
-                    .sub(reserveInput);
+                amountInput =
+                    IOurOwnLPERC20(input).balanceOf(address(pair)) -
+                    reserveInput;
                 amountOutput = UniswapV2Library.getAmountOut(
                     amountInput,
                     reserveInput,
@@ -719,9 +702,9 @@ contract OurOwnRouter is IUniswapV2Router02 {
         );
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            IOurOwnLPERC20(path[path.length - 1]).balanceOf(to).sub(
-                balanceBefore
-            ) >= amountOutMin,
+            IOurOwnLPERC20(path[path.length - 1]).balanceOf(to) -
+                balanceBefore >=
+                amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
@@ -746,9 +729,9 @@ contract OurOwnRouter is IUniswapV2Router02 {
         );
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
-            IOurOwnLPERC20(path[path.length - 1]).balanceOf(to).sub(
-                balanceBefore
-            ) >= amountOutMin,
+            IOurOwnLPERC20(path[path.length - 1]).balanceOf(to) -
+                balanceBefore >=
+                amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
     }
