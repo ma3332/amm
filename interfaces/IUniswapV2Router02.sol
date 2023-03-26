@@ -7,6 +7,7 @@ import "./IUniswapV2Router01.sol";
 interface IUniswapV2Router02 is IUniswapV2Router01 {
     function removeLiquidityETHSupportingFeeOnTransferTokens(
         address token,
+        uint256 _id,
         uint256 liquidity,
         uint256 amountTokenMin,
         uint256 amountETHMin,
@@ -16,6 +17,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
 
     function removeLiquidityETHWithPermitSupportingFeeOnTransferTokens(
         address token,
+        uint256 _id,
         uint256 liquidity,
         uint256 amountTokenMin,
         uint256 amountETHMin,

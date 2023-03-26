@@ -33,6 +33,7 @@ interface IUniswapV2Router01 {
     function removeLiquidity(
         address tokenA,
         address tokenB,
+        uint256 _id,
         uint256 liquidity,
         uint256 amountAMin,
         uint256 amountBMin,
@@ -42,6 +43,7 @@ interface IUniswapV2Router01 {
 
     function removeLiquidityETH(
         address token,
+        uint256 _id,
         uint256 liquidity,
         uint256 amountTokenMin,
         uint256 amountETHMin,
@@ -52,6 +54,7 @@ interface IUniswapV2Router01 {
     function removeLiquidityWithPermit(
         address tokenA,
         address tokenB,
+        uint256 _id,
         uint256 liquidity,
         uint256 amountAMin,
         uint256 amountBMin,
@@ -65,6 +68,7 @@ interface IUniswapV2Router01 {
 
     function removeLiquidityETHWithPermit(
         address token,
+        uint256 _id,
         uint256 liquidity,
         uint256 amountTokenMin,
         uint256 amountETHMin,

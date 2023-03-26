@@ -31,7 +31,6 @@ contract OurOwnPair is OurOwnLPERC20 {
 
     uint256 public price0CumulativeLast;
     uint256 public price1CumulativeLast;
-    uint256 public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
     uint256 private unlocked = 1;
     modifier lock() {
@@ -121,30 +120,6 @@ contract OurOwnPair is OurOwnLPERC20 {
         emit Sync(reserve0, reserve1);
     }
 
-    // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
-    function _mintFee(
-        uint112 _reserve0,
-        uint112 _reserve1
-    ) private returns (bool feeOn) {
-        address feeTo = IUniswapV2Factory(factory).feeTo();
-        feeOn = feeTo != address(0);
-        uint256 _kLast = kLast; // gas savings
-        if (feeOn) {
-            if (_kLast != 0) {
-                uint256 rootK = Math.sqrt(uint256(_reserve0) * _reserve1);
-                uint256 rootKLast = Math.sqrt(_kLast);
-                if (rootK > rootKLast) {
-                    uint256 numerator = totalSupply * (rootK - rootKLast);
-                    uint256 denominator = rootK * 5 + rootKLast;
-                    uint256 liquidity = numerator / denominator;
-                    if (liquidity > 0) _mint(feeTo, liquidity);
-                }
-            }
-        } else if (_kLast != 0) {
-            kLast = 0;
-        }
-    }
-
     // this low-level function should be called from a contract which performs important safety checks
     function mint(address to) external lock returns (uint256 liquidity) {
         (uint112 _reserve0, uint112 _reserve1, ) = getReserves(); // gas savings
@@ -152,8 +127,6 @@ contract OurOwnPair is OurOwnLPERC20 {
         uint256 balance1 = IOurOwnLPERC20(token1).balanceOf(address(this));
         uint256 amount0 = balance0 - _reserve0;
         uint256 amount1 = balance1 - _reserve1;
-
-        bool feeOn = _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         if (_totalSupply == 0) {
             address migrator = IUniswapV2Factory(factory).migrator();
@@ -178,7 +151,6 @@ contract OurOwnPair is OurOwnLPERC20 {
         _mint(to, liquidity);
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        if (feeOn) kLast = uint256(reserve0) * reserve1; // reserve0 and reserve1 are up-to-date
         emit Mint(msg.sender, amount0, amount1);
     }
 
@@ -192,8 +164,6 @@ contract OurOwnPair is OurOwnLPERC20 {
         uint256 balance0 = IOurOwnLPERC20(_token0).balanceOf(address(this));
         uint256 balance1 = IOurOwnLPERC20(_token1).balanceOf(address(this));
         uint256 liquidity = balanceOf[address(this)];
-
-        bool feeOn = _mintFee(_reserve0, _reserve1);
         uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         amount0 = (liquidity * balance0) / _totalSupply; // using balances ensures pro-rata distribution
         amount1 = (liquidity * balance1) / _totalSupply; // using balances ensures pro-rata distribution
@@ -205,7 +175,6 @@ contract OurOwnPair is OurOwnLPERC20 {
         balance1 = IOurOwnLPERC20(_token1).balanceOf(address(this));
 
         _update(balance0, balance1, _reserve0, _reserve1);
-        if (feeOn) kLast = uint256(reserve0) * reserve1; // reserve0 and reserve1 are up-to-date
         emit Burn(msg.sender, amount0, amount1, to);
     }
 

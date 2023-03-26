@@ -70,7 +70,7 @@ library UniswapV2Library {
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
-    // Swap fee is fixed = 0.3% = 3/1000. Liquidity providers will receive this fee
+    // Swap fee is fixed = 0.1% = 1/1000. Liquidity providers will receive this fee
     function getAmountOut(
         uint256 amountIn,
         uint256 reserveIn,
@@ -81,7 +81,7 @@ library UniswapV2Library {
             reserveIn > 0 && reserveOut > 0,
             "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
         );
-        uint256 amountInWithFee = amountIn * 997;
+        uint256 amountInWithFee = amountIn * 999;
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = (reserveIn * 1000) + amountInWithFee;
         amountOut = numerator / denominator;
@@ -99,7 +99,7 @@ library UniswapV2Library {
             "UniswapV2Library: INSUFFICIENT_LIQUIDITY"
         );
         uint256 numerator = reserveIn * amountOut * 1000;
-        uint256 denominator = (reserveOut - amountOut) * 997;
+        uint256 denominator = (reserveOut - amountOut) * 999;
         amountIn = (numerator / denominator) + 1;
     }
 

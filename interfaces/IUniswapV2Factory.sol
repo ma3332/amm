@@ -10,8 +10,6 @@ interface IUniswapV2Factory {
         uint256
     );
 
-    function feeTo() external view returns (address);
-
     function feeToSetter() external view returns (address);
 
     function migrator() external view returns (address);
@@ -29,8 +27,6 @@ interface IUniswapV2Factory {
         address tokenA,
         address tokenB
     ) external returns (address pair);
-
-    function setFeeTo(address) external;
 
     function setFeeToSetter(address) external;
 
