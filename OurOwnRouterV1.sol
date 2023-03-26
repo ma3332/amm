@@ -8,6 +8,7 @@ import "./interfaces/IUniswapV2Router01.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IOurOwnLPERC20.sol";
 import "./interfaces/IWETH.sol";
+import "./abstracts/Ownable.sol";
 
 interface IlockLPToken {
     struct Items {
@@ -28,9 +29,10 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-contract OurOwnRouterV1 is IUniswapV2Router01 {
+contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
     address public immutable override factory;
     address public immutable override WETH;
+    uint256 percentage;
 
     IlockLPToken public lockLPToken;
 
@@ -48,10 +50,15 @@ contract OurOwnRouterV1 is IUniswapV2Router01 {
         factory = _factory;
         WETH = _WETH;
         lockLPToken = IlockLPToken(_lockLPToken);
+        percentage = 95;
     }
 
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+    }
+
+    function setPercentage(uint256 _percentage) public onlyOwner {
+        percentage = _percentage;
     }
 
     // **** ADD LIQUIDITY ****
@@ -79,11 +86,16 @@ contract OurOwnRouterV1 is IUniswapV2Router01 {
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
             require(
-                amountADesired >= (IERC20(tokenA).totalSupply() * 95) / 100 ||
-                    amountBDesired >= (IERC20(tokenB).totalSupply() * 95) / 100,
+                amountADesired >=
+                    (IERC20(tokenA).totalSupply() * percentage) / 100 ||
+                    amountBDesired >=
+                    (IERC20(tokenB).totalSupply() * percentage) / 100,
                 "Not allow to deposit"
             );
-            if (amountADesired >= (IERC20(tokenA).totalSupply() * 95) / 100) {
+            if (
+                amountADesired >=
+                (IERC20(tokenA).totalSupply() * percentage) / 100
+            ) {
                 origin = tokenA;
             } else {
                 origin = tokenB;

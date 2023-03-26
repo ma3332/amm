@@ -220,9 +220,9 @@ contract OurOwnPair is OurOwnLPERC20 {
         require(amount0In > 0 || amount1In > 0, "INSUFFICIENT_INPUT_AMOUNT");
         {
             // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-            // Swap fee is fixed = 0.3% = 3/1000. Liquidity providers will receive this fee
-            uint256 balance0Adjusted = balance0 * 1000 - (amount0In * 3);
-            uint256 balance1Adjusted = balance1 * 1000 - (amount1In * 3);
+            // Swap fee is fixed = 0.1% = 1/1000. Liquidity providers will receive this fee
+            uint256 balance0Adjusted = balance0 * 1000 - (amount0In * 1);
+            uint256 balance1Adjusted = balance1 * 1000 - (amount1In * 1);
             require(
                 balance0Adjusted * balance1Adjusted >=
                     uint256(_reserve0) * _reserve1 * (1000 ** 2),
