@@ -3,9 +3,9 @@
 pragma solidity ^0.8.0;
 
 abstract contract ISwapRouter01 {
-    function factory() external view returns (address);
+    function factory() external view virtual returns (address);
 
-    function WETH() external view returns (address);
+    function WETH() external view virtual returns (address);
 
     function addLiquidity(
         address tokenA,
@@ -16,7 +16,10 @@ abstract contract ISwapRouter01 {
         uint256 amountBMin,
         address to,
         uint256 deadline
-    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
+    )
+        external
+        virtual
+        returns (uint256 amountA, uint256 amountB, uint256 liquidity);
 
     function addLiquidityETH(
         address token,
@@ -28,6 +31,7 @@ abstract contract ISwapRouter01 {
     )
         external
         payable
+        virtual
         returns (uint256 amountToken, uint256 amountETH, uint256 liquidity);
 
     function removeLiquidity(
@@ -39,7 +43,7 @@ abstract contract ISwapRouter01 {
         uint256 amountBMin,
         address to,
         uint256 deadline
-    ) external returns (uint256 amountA, uint256 amountB);
+    ) external virtual returns (uint256 amountA, uint256 amountB);
 
     function removeLiquidityETH(
         address token,
@@ -49,7 +53,7 @@ abstract contract ISwapRouter01 {
         uint256 amountETHMin,
         address to,
         uint256 deadline
-    ) external returns (uint256 amountToken, uint256 amountETH);
+    ) external virtual returns (uint256 amountToken, uint256 amountETH);
 
     function removeLiquidityWithPermit(
         address tokenA,
@@ -64,7 +68,7 @@ abstract contract ISwapRouter01 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (uint256 amountA, uint256 amountB);
+    ) external virtual returns (uint256 amountA, uint256 amountB);
 
     function removeLiquidityETHWithPermit(
         address token,
@@ -78,7 +82,7 @@ abstract contract ISwapRouter01 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (uint256 amountToken, uint256 amountETH);
+    ) external virtual returns (uint256 amountToken, uint256 amountETH);
 
     function swapExactTokensForTokens(
         uint256 amountIn,
@@ -86,7 +90,7 @@ abstract contract ISwapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external virtual returns (uint256[] memory amounts);
 
     function swapTokensForExactTokens(
         uint256 amountOut,
@@ -94,14 +98,14 @@ abstract contract ISwapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external virtual returns (uint256[] memory amounts);
 
     function swapExactETHForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable returns (uint256[] memory amounts);
+    ) external payable virtual returns (uint256[] memory amounts);
 
     function swapTokensForExactETH(
         uint256 amountOut,
@@ -109,7 +113,7 @@ abstract contract ISwapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external virtual returns (uint256[] memory amounts);
 
     function swapExactTokensForETH(
         uint256 amountIn,
@@ -117,30 +121,30 @@ abstract contract ISwapRouter01 {
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external returns (uint256[] memory amounts);
+    ) external virtual returns (uint256[] memory amounts);
 
     function swapETHForExactTokens(
         uint256 amountOut,
         address[] calldata path,
         address to,
         uint256 deadline
-    ) external payable returns (uint256[] memory amounts);
+    ) external payable virtual returns (uint256[] memory amounts);
 
     function quote(
         uint256 amountA,
         uint256 reserveA,
         uint256 reserveB
-    ) internal view returns (uint256 amountB);
+    ) internal view virtual returns (uint256 amountB);
 
     function getAmountOut(
         uint256 amountIn,
         uint256 reserveIn,
         uint256 reserveOut
-    ) internal view returns (uint256 amountOut);
+    ) internal view virtual returns (uint256 amountOut);
 
     function getAmountIn(
         uint256 amountOut,
         uint256 reserveIn,
         uint256 reserveOut
-    ) internal view returns (uint256 amountIn);
+    ) internal view virtual returns (uint256 amountIn);
 }
