@@ -10,9 +10,9 @@ contract parameterSetup is Ownable {
     uint256 public lockTime;
 
     constructor() {
-        percentage = 95;
-        fee = 1;
-        lockTime = 31536000;
+        percentage = 95; // 95% need to be deposited at 1st time
+        fee = 1; // 0.1% fee for LP providers
+        lockTime = 31536000; // 1 year lock LP is required
     }
 
     function setPercentage(uint256 _percetage) public onlyOwner {

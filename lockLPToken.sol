@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 import "./interfaces/IOurOwnLPERC20.sol";
 import "./parameterSetup.sol";
 
-contract lockLPToken {
+contract lockLPToken is parameterSetup {
     struct Items {
         address tokenAddress;
         uint256 tokenAmount;
