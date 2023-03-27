@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/IOurOwnLPERC20.sol";
+import "./parameterSetup.sol";
 
 contract lockLPToken {
     struct Items {
@@ -13,7 +14,6 @@ contract lockLPToken {
 
     uint256 public depositId = 0;
     uint256[] public allDepositIds;
-    uint256 public lockTime = 31536000;
 
     mapping(uint256 => Items) public lockedToken;
 
