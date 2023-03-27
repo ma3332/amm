@@ -2,14 +2,29 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/IOurOwnLPERC20.sol";
-import "./parameterSetup.sol";
 
-contract lockLPToken is parameterSetup {
+interface IparameterSetup {
+    function viewLockTime() external returns (uint256);
+}
+
+contract lockLPToken {
     struct Items {
         address tokenAddress;
         uint256 tokenAmount;
         uint256 unlockTime;
         bool withdrawn;
+    }
+
+    uint256 lockTime;
+    IparameterSetup public parameterSetup;
+
+    constructor(address _parameterSetup) {
+        parameterSetup = IparameterSetup(_parameterSetup);
+        lockTime = parameterSetup.viewLockTime();
+    }
+
+    function setLockTime() public {
+        lockTime = parameterSetup.viewLockTime();
     }
 
     uint256 public depositId = 0;

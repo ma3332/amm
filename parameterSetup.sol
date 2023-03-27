@@ -26,4 +26,16 @@ contract parameterSetup is Ownable {
     function setLockTime(uint256 _lockTime) public onlyOwner {
         lockTime = _lockTime;
     }
+
+    function viewPercentage() public view returns (uint256 percent) {
+        percent = percentage;
+    }
+
+    function viewFee() public view returns (uint256 _viewFee) {
+        _viewFee = fee;
+    }
+
+    function viewLockTime() public view returns (uint256 viewLock) {
+        viewLock = lockTime;
+    }
 }

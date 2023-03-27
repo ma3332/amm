@@ -8,8 +8,6 @@ import "./interfaces/ISwapFactory.sol";
 import "./interfaces/IOurOwnLPERC20.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/ISwapPair.sol";
-import "./abstracts/Ownable.sol";
-import "./parameterSetup.sol";
 
 interface IlockLPToken {
     struct Items {
@@ -30,11 +28,20 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-contract OurOwnRouterV1 is ISwapRouter01, parameterSetup {
+interface IparameterSetup {
+    function viewPercentage() external returns (uint256);
+
+    function viewFee() external returns (uint256);
+}
+
+contract OurOwnRouterV1 is ISwapRouter01 {
     address public immutable override factory;
     address public immutable override WETH;
+    uint256 public percentage;
+    uint256 public fee;
 
     IlockLPToken public lockLPToken;
+    IparameterSetup public parameterSetup;
 
     event ETHPairCreate(address pair, uint256 id, uint256 liquidityLPETH);
     event pairCreated(address pair, uint256 id, uint256 liquidityLP);
@@ -46,10 +53,26 @@ contract OurOwnRouterV1 is ISwapRouter01, parameterSetup {
         _;
     }
 
-    constructor(address _factory, address _WETH, address _lockLPToken) {
+    constructor(
+        address _factory,
+        address _WETH,
+        address _lockLPToken,
+        address _parameterSetup
+    ) {
         factory = _factory;
         WETH = _WETH;
         lockLPToken = IlockLPToken(_lockLPToken);
+        parameterSetup = IparameterSetup(_parameterSetup);
+        percentage = parameterSetup.viewPercentage();
+        fee = parameterSetup.viewFee();
+    }
+
+    function setFee() public {
+        fee = parameterSetup.viewFee();
+    }
+
+    function setPercentage() public {
+        percentage = parameterSetup.viewPercentage();
     }
 
     receive() external payable {
