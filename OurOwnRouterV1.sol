@@ -2,13 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import "./libraries/UniswapV2Library.sol";
 import "./libraries/TransferHelper.sol";
 import "./interfaces/IUniswapV2Router01.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IOurOwnLPERC20.sol";
 import "./interfaces/IWETH.sol";
+import "./interfaces/IUniswapV2Pair.sol";
 import "./abstracts/Ownable.sol";
+import "./parameterSetup.sol";
 
 interface IlockLPToken {
     struct Items {
@@ -29,10 +30,9 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
+contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
     address public immutable override factory;
     address public immutable override WETH;
-    uint256 percentage;
 
     IlockLPToken public lockLPToken;
 
@@ -50,15 +50,10 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         factory = _factory;
         WETH = _WETH;
         lockLPToken = IlockLPToken(_lockLPToken);
-        percentage = 95;
     }
 
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
-    }
-
-    function setPercentage(uint256 _percentage) public onlyOwner {
-        percentage = _percentage;
     }
 
     // **** ADD LIQUIDITY ****
@@ -78,7 +73,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
             IUniswapV2Factory(factory).createPair(tokenA, tokenB);
         }
-        (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(
+        (uint256 reserveA, uint256 reserveB) = getReserves(
             factory,
             tokenA,
             tokenB
@@ -102,11 +97,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
             }
             newLP = true;
         } else {
-            uint256 amountBOptimal = UniswapV2Library.quote(
-                amountADesired,
-                reserveA,
-                reserveB
-            );
+            uint256 amountBOptimal = quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal <= amountBDesired) {
                 require(
                     amountBOptimal >= amountBMin,
@@ -114,7 +105,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
                 );
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
-                uint256 amountAOptimal = UniswapV2Library.quote(
+                uint256 amountAOptimal = quote(
                     amountBDesired,
                     reserveB,
                     reserveA
@@ -156,7 +147,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
             amountAMin,
             amountBMin
         );
-        address pair = UniswapV2Library.pairFor(
+        address pair = pairFor(
             factory,
             _fromToken(msg.data),
             _destToken(msg.data)
@@ -207,11 +198,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
             amountTokenMin,
             amountETHMin
         );
-        address pair = UniswapV2Library.pairFor(
-            factory,
-            _fromToken(msg.data),
-            WETH
-        );
+        address pair = pairFor(factory, _fromToken(msg.data), WETH);
         TransferHelper.safeTransferFrom(
             _fromToken(msg.data),
             msg.sender,
@@ -250,7 +237,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         returns (uint256 amountA, uint256 amountB)
     {
         require(msg.sender == tx.origin, "Not allowed");
-        address pair = UniswapV2Library.pairFor(
+        address pair = pairFor(
             factory,
             _fromToken(msg.data),
             _destToken(msg.data)
@@ -265,7 +252,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         );
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
-        (address token0, ) = UniswapV2Library.sortTokens(
+        (address token0, ) = sortTokens(
             _fromToken(msg.data),
             _destToken(msg.data)
         );
@@ -298,11 +285,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         returns (uint256 amountToken, uint256 amountETH)
     {
         require(msg.sender == tx.origin, "Not allowed");
-        address pair = UniswapV2Library.pairFor(
-            factory,
-            _fromToken(msg.data),
-            WETH
-        );
+        address pair = pairFor(factory, _fromToken(msg.data), WETH);
         require(
             lockLPToken.lockedToken(_id).unlockTime > block.timestamp,
             "Not yet withdraw"
@@ -313,10 +296,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         );
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
-        (address token0, ) = UniswapV2Library.sortTokens(
-            _fromToken(msg.data),
-            WETH
-        );
+        (address token0, ) = sortTokens(_fromToken(msg.data), WETH);
         (amountToken, amountETH) = _fromToken(msg.data) == token0
             ? (amount0, amount1)
             : (amount1, amount0);
@@ -348,7 +328,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         bytes32 s
     ) external virtual override returns (uint256 amountA, uint256 amountB) {
         require(msg.sender == tx.origin, "Not allowed");
-        address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
+        address pair = pairFor(factory, tokenA, tokenB);
         require(
             lockLPToken.lockedToken(_id).unlockTime > block.timestamp,
             "Not yet withdraw"
@@ -374,7 +354,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         }
         {
             (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
-            (address token0, ) = UniswapV2Library.sortTokens(
+            (address token0, ) = sortTokens(
                 _fromToken(msg.data),
                 _destToken(msg.data)
             );
@@ -415,7 +395,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         returns (uint256 amountToken, uint256 amountETH)
     {
         require(msg.sender == tx.origin, "Not allowed");
-        address pair = UniswapV2Library.pairFor(factory, token, WETH);
+        address pair = pairFor(factory, token, WETH);
         require(
             lockLPToken.lockedToken(_id).unlockTime > block.timestamp,
             "Not yet withdraw"
@@ -439,10 +419,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         {
             (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
-            (address token0, ) = UniswapV2Library.sortTokens(
-                _fromToken(msg.data),
-                WETH
-            );
+            (address token0, ) = sortTokens(_fromToken(msg.data), WETH);
             (amountToken, amountETH) = _fromToken(msg.data) == token0
                 ? (amount0, amount1)
                 : (amount1, amount0);
@@ -469,16 +446,20 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
     ) internal virtual {
         for (uint256 i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0, ) = UniswapV2Library.sortTokens(input, output);
+            (address token0, ) = sortTokens(input, output);
             uint256 amountOut = amounts[i + 1];
             (uint256 amount0Out, uint256 amount1Out) = input == token0
                 ? (uint256(0), amountOut)
                 : (amountOut, uint256(0));
             address to = i < path.length - 2
-                ? UniswapV2Library.pairFor(factory, output, path[i + 2])
+                ? pairFor(factory, output, path[i + 2])
                 : _to;
-            IUniswapV2Pair(UniswapV2Library.pairFor(factory, input, output))
-                .swap(amount0Out, amount1Out, to, new bytes(0));
+            IUniswapV2Pair(pairFor(factory, input, output)).swap(
+                amount0Out,
+                amount1Out,
+                to,
+                new bytes(0)
+            );
         }
     }
 
@@ -501,7 +482,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
                 "Token is mintable"
             );
         }
-        amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
+        amounts = getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
@@ -509,7 +490,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
-            UniswapV2Library.pairFor(factory, path[0], path[1]),
+            pairFor(factory, path[0], path[1]),
             amounts[0]
         );
 
@@ -535,7 +516,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
                 "Token is mintable"
             );
         }
-        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        amounts = getAmountsIn(factory, amountOut, path);
         require(
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
@@ -543,7 +524,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
-            UniswapV2Library.pairFor(factory, path[0], path[1]),
+            pairFor(factory, path[0], path[1]),
             amounts[0]
         );
         _swap(amounts, path, to);
@@ -563,17 +544,14 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         returns (uint256[] memory amounts)
     {
         require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
-        amounts = UniswapV2Library.getAmountsOut(factory, msg.value, path);
+        amounts = getAmountsOut(factory, msg.value, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
         );
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(
-            IWETH(WETH).transfer(
-                UniswapV2Library.pairFor(factory, path[0], path[1]),
-                amounts[0]
-            )
+            IWETH(WETH).transfer(pairFor(factory, path[0], path[1]), amounts[0])
         );
         _swap(amounts, path, to);
     }
@@ -598,7 +576,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
                 "Token is mintable"
             );
         }
-        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        amounts = getAmountsIn(factory, amountOut, path);
         require(
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
@@ -606,7 +584,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
-            UniswapV2Library.pairFor(factory, path[0], path[1]),
+            pairFor(factory, path[0], path[1]),
             amounts[0]
         );
         _swap(amounts, path, address(this));
@@ -634,7 +612,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
                 "Token is mintable"
             );
         }
-        amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
+        amounts = getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
@@ -642,7 +620,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
-            UniswapV2Library.pairFor(factory, path[0], path[1]),
+            pairFor(factory, path[0], path[1]),
             amounts[0]
         );
         _swap(amounts, path, address(this));
@@ -664,17 +642,14 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
         returns (uint256[] memory amounts)
     {
         require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
-        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        amounts = getAmountsIn(factory, amountOut, path);
         require(
             amounts[0] <= msg.value,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
         );
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(
-            IWETH(WETH).transfer(
-                UniswapV2Library.pairFor(factory, path[0], path[1]),
-                amounts[0]
-            )
+            IWETH(WETH).transfer(pairFor(factory, path[0], path[1]), amounts[0])
         );
         _swap(amounts, path, to);
         // refund dust eth, if any
@@ -683,42 +658,131 @@ contract OurOwnRouterV1 is IUniswapV2Router01, Ownable {
     }
 
     // **** LIBRARY FUNCTIONS ****
+    // returns sorted token addresses, used to handle return values from pairs sorted in this order
+    function sortTokens(
+        address tokenA,
+        address tokenB
+    ) internal pure returns (address token0, address token1) {
+        require(tokenA != tokenB, "IDENTICAL_ADDRESSES");
+        (token0, token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
+        require(token0 != address(0), "ZERO_ADDRESS");
+    }
+
+    // calculates the CREATE2 address for a pair without making any external calls
+    function pairFor(
+        address factoryPram,
+        address tokenA,
+        address tokenB
+    ) internal pure returns (address pair) {
+        (address token0, address token1) = sortTokens(tokenA, tokenB);
+        pair = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex"ff",
+                            factoryPram,
+                            keccak256(abi.encodePacked(token0, token1)),
+                            hex"97ce6f1772b40f5d2163d98e289ffe4ce4eb434b0abb05857bd8721564d03ae6" // init code hash, need to change here
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    // fetches and sorts the reserves for a pair
+    function getReserves(
+        address factoryPram,
+        address tokenA,
+        address tokenB
+    ) internal view returns (uint256 reserveA, uint256 reserveB) {
+        (address token0, ) = sortTokens(tokenA, tokenB);
+        (uint256 reserve0, uint256 reserve1, ) = IUniswapV2Pair(
+            pairFor(factoryPram, tokenA, tokenB)
+        ).getReserves();
+        (reserveA, reserveB) = tokenA == token0
+            ? (reserve0, reserve1)
+            : (reserve1, reserve0);
+    }
+
+    // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(
         uint256 amountA,
         uint256 reserveA,
         uint256 reserveB
-    ) public view virtual override returns (uint256 amountB) {
-        return UniswapV2Library.quote(amountA, reserveA, reserveB);
+    ) internal view virtual override returns (uint256 amountB) {
+        require(amountA > 0, "INSUFFICIENT_AMOUNT");
+        require(reserveA > 0 && reserveB > 0, "INSUFFICIENT_LIQUIDITY");
+        amountB = (amountA * reserveB) / reserveA;
     }
 
+    // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+    // Swap fee is fixed = 0.1% = 1/1000. Liquidity providers will receive this fee
     function getAmountOut(
         uint256 amountIn,
         uint256 reserveIn,
         uint256 reserveOut
-    ) public view virtual override returns (uint256 amountOut) {
-        return UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
+    ) internal view virtual override returns (uint256 amountOut) {
+        require(amountIn > 0, "INSUFFICIENT_INPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
+        uint256 amountInWithFee = amountIn * (1000 - fee);
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = (reserveIn * 1000) + amountInWithFee;
+        amountOut = numerator / denominator;
     }
 
+    // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     function getAmountIn(
         uint256 amountOut,
         uint256 reserveIn,
         uint256 reserveOut
-    ) public view virtual override returns (uint256 amountIn) {
-        return UniswapV2Library.getAmountIn(amountOut, reserveIn, reserveOut);
+    ) internal view virtual override returns (uint256 amountIn) {
+        require(amountOut > 0, "INSUFFICIENT_OUTPUT_AMOUNT");
+        require(reserveIn > 0 && reserveOut > 0, "INSUFFICIENT_LIQUIDITY");
+        uint256 numerator = reserveIn * amountOut * 1000;
+        uint256 denominator = (reserveOut - amountOut) * (1000 - fee);
+        amountIn = (numerator / denominator) + 1;
     }
 
+    // performs chained getAmountOut calculations on any number of pairs
     function getAmountsOut(
+        address factoryPram,
         uint256 amountIn,
         address[] memory path
-    ) public view virtual override returns (uint256[] memory amounts) {
-        return UniswapV2Library.getAmountsOut(factory, amountIn, path);
+    ) internal view returns (uint256[] memory amounts) {
+        require(path.length >= 2, "INVALID_PATH");
+        amounts = new uint256[](path.length);
+        amounts[0] = amountIn;
+        for (uint256 i; i < path.length - 1; i++) {
+            (uint256 reserveIn, uint256 reserveOut) = getReserves(
+                factoryPram,
+                path[i],
+                path[i + 1]
+            );
+            amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
+        }
     }
 
+    // performs chained getAmountIn calculations on any number of pairs
     function getAmountsIn(
+        address factoryPram,
         uint256 amountOut,
         address[] memory path
-    ) public view virtual override returns (uint256[] memory amounts) {
-        return UniswapV2Library.getAmountsIn(factory, amountOut, path);
+    ) internal view returns (uint256[] memory amounts) {
+        require(path.length >= 2, "INVALID_PATH");
+        amounts = new uint256[](path.length);
+        amounts[amounts.length - 1] = amountOut;
+        for (uint256 i = path.length - 1; i > 0; i--) {
+            (uint256 reserveIn, uint256 reserveOut) = getReserves(
+                factoryPram,
+                path[i - 1],
+                path[i]
+            );
+            amounts[i - 1] = getAmountIn(amounts[i], reserveIn, reserveOut);
+        }
     }
 
     // Helps to avoid "Stack too deep" in swap() method

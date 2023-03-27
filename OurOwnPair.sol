@@ -8,13 +8,14 @@ import "./libraries/UQ112x112.sol";
 import "./interfaces/IOurOwnLPERC20.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Callee.sol";
+import "./parameterSetup.sol";
 
 interface IMigrator {
     // Return the desired amount of liquidity token that the migrator wants.
     function desiredLiquidity() external view returns (uint256);
 }
 
-contract OurOwnPair is OurOwnLPERC20 {
+contract OurOwnPair is OurOwnLPERC20, parameterSetup {
     using UQ112x112 for uint224;
 
     uint256 public constant MINIMUM_LIQUIDITY = 10 ** 3;
@@ -221,8 +222,8 @@ contract OurOwnPair is OurOwnLPERC20 {
         {
             // scope for reserve{0,1}Adjusted, avoids stack too deep errors
             // Swap fee is fixed = 0.1% = 1/1000. Liquidity providers will receive this fee
-            uint256 balance0Adjusted = balance0 * 1000 - (amount0In * 1);
-            uint256 balance1Adjusted = balance1 * 1000 - (amount1In * 1);
+            uint256 balance0Adjusted = balance0 * 1000 - (amount0In * fee);
+            uint256 balance1Adjusted = balance1 * 1000 - (amount1In * fee);
             require(
                 balance0Adjusted * balance1Adjusted >=
                     uint256(_reserve0) * _reserve1 * (1000 ** 2),
