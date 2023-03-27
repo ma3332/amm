@@ -6,8 +6,8 @@ import "./OurOwnLPERC20.sol";
 import "./libraries/Math.sol";
 import "./libraries/UQ112x112.sol";
 import "./interfaces/IOurOwnLPERC20.sol";
-import "./interfaces/IUniswapV2Factory.sol";
-import "./interfaces/IUniswapV2Callee.sol";
+import "./interfaces/ISwapFactory.sol";
+import "./interfaces/ISwapCallee.sol";
 import "./parameterSetup.sol";
 
 interface IMigrator {
@@ -130,7 +130,7 @@ contract OurOwnPair is OurOwnLPERC20, parameterSetup {
         uint256 amount1 = balance1 - _reserve1;
         uint256 _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         if (_totalSupply == 0) {
-            address migrator = IUniswapV2Factory(factory).migrator();
+            address migrator = ISwapFactory(factory).migrator();
             if (msg.sender == migrator) {
                 liquidity = IMigrator(migrator).desiredLiquidity();
                 require(
@@ -203,7 +203,7 @@ contract OurOwnPair is OurOwnLPERC20, parameterSetup {
             if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
             if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
             if (data.length > 0)
-                IUniswapV2Callee(to).uniswapV2Call(
+                ISwapCallee(to).swapCall(
                     msg.sender,
                     amount0Out,
                     amount1Out,

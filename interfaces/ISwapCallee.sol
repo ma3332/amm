@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-interface IUniswapV2Callee {
-    function uniswapV2Call(
+interface ISwapCallee {
+    function swapCall(
         address sender,
         uint amount0,
         uint amount1,

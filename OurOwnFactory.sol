@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import "./interfaces/IUniswapV2Factory.sol";
+import "./interfaces/ISwapFactory.sol";
 import "./OurOwnPair.sol";
 
-contract OurOwnFactory is IUniswapV2Factory {
+contract OurOwnFactory is ISwapFactory {
     address public override feeToSetter;
     address public override migrator;
 

@@ -96,7 +96,7 @@ contract OurOwnLPERC20 is IOurOwnLPERC20 {
         bytes32 r,
         bytes32 s
     ) external override {
-        require(deadline >= block.timestamp, "UniswapV2: EXPIRED");
+        require(deadline >= block.timestamp, "Swap: EXPIRED");
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -116,7 +116,7 @@ contract OurOwnLPERC20 is IOurOwnLPERC20 {
         address recoveredAddress = ecrecover(digest, v, r, s);
         require(
             recoveredAddress != address(0) && recoveredAddress == owner,
-            "UniswapV2: INVALID_SIGNATURE"
+            "Swap: INVALID_SIGNATURE"
         );
         _approve(owner, spender, value);
     }

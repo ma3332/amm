@@ -63,7 +63,6 @@ contract lockLPToken {
         lockedToken[_id].tokenAmount = lockAmount;
         lockedToken[_id].unlockTime = _unlockTime;
         lockedToken[_id].withdrawn = false;
-        lockedToken[_id].lockedPermanent = false;
 
         allDepositIds.push(_id);
 

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-abstract contract IUniswapV2Router01 {
+abstract contract ISwapRouter01 {
     function factory() external view returns (address);
 
     function WETH() external view returns (address);

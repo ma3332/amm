@@ -3,11 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "./libraries/TransferHelper.sol";
-import "./interfaces/IUniswapV2Router01.sol";
-import "./interfaces/IUniswapV2Factory.sol";
+import "./interfaces/ISwapRouter01.sol";
+import "./interfaces/ISwapFactory.sol";
 import "./interfaces/IOurOwnLPERC20.sol";
 import "./interfaces/IWETH.sol";
-import "./interfaces/IUniswapV2Pair.sol";
+import "./interfaces/ISwapPair.sol";
 import "./abstracts/Ownable.sol";
 import "./parameterSetup.sol";
 
@@ -30,7 +30,7 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
+contract OurOwnRouterV1 is ISwapRouter01, parameterSetup {
     address public immutable override factory;
     address public immutable override WETH;
 
@@ -70,8 +70,8 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         returns (uint256 amountA, uint256 amountB, bool newLP, address origin)
     {
         // create the pair if it doesn't exist yet
-        if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
-            IUniswapV2Factory(factory).createPair(tokenA, tokenB);
+        if (ISwapFactory(factory).getPair(tokenA, tokenB) == address(0)) {
+            ISwapFactory(factory).createPair(tokenA, tokenB);
         }
         (uint256 reserveA, uint256 reserveB) = getReserves(
             factory,
@@ -101,7 +101,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
             if (amountBOptimal <= amountBDesired) {
                 require(
                     amountBOptimal >= amountBMin,
-                    "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
+                    "SwapRouter: INSUFFICIENT_B_AMOUNT"
                 );
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
@@ -113,7 +113,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
                 assert(amountAOptimal <= amountADesired);
                 require(
                     amountAOptimal >= amountAMin,
-                    "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
+                    "SwapRouter: INSUFFICIENT_A_AMOUNT"
                 );
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
@@ -164,7 +164,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
             pair,
             amountB
         );
-        liquidity = IUniswapV2Pair(pair).mint(to);
+        liquidity = ISwapPair(pair).mint(to);
         uint256 id = lockLPToken.lockTokens(pair, liquidity);
         if (newLP) {
             initalID[pair] = id;
@@ -207,7 +207,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         );
         IWETH(WETH).deposit{value: amountETH}();
         assert(IWETH(WETH).transfer(pair, amountETH));
-        liquidity = IUniswapV2Pair(pair).mint(to);
+        liquidity = ISwapPair(pair).mint(to);
         // refund dust eth, if any
         if (msg.value > amountETH)
             TransferHelper.safeTransferETH(msg.sender, msg.value - amountETH);
@@ -250,8 +250,8 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
             lockLPToken.lockedToken(_id).tokenAddress == pair,
             "Not correct pair"
         );
-        IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
+        ISwapPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        (uint256 amount0, uint256 amount1) = ISwapPair(pair).burn(to);
         (address token0, ) = sortTokens(
             _fromToken(msg.data),
             _destToken(msg.data)
@@ -259,14 +259,8 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         (amountA, amountB) = _fromToken(msg.data) == token0
             ? (amount0, amount1)
             : (amount1, amount0);
-        require(
-            amountA >= amountAMin,
-            "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
-        );
-        require(
-            amountB >= amountBMin,
-            "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
-        );
+        require(amountA >= amountAMin, "SwapRouter: INSUFFICIENT_A_AMOUNT");
+        require(amountB >= amountBMin, "SwapRouter: INSUFFICIENT_B_AMOUNT");
     }
 
     function removeLiquidityETH(
@@ -294,20 +288,17 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
             lockLPToken.lockedToken(_id).tokenAddress == pair,
             "Not correct pair"
         );
-        IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
+        ISwapPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        (uint256 amount0, uint256 amount1) = ISwapPair(pair).burn(to);
         (address token0, ) = sortTokens(_fromToken(msg.data), WETH);
         (amountToken, amountETH) = _fromToken(msg.data) == token0
             ? (amount0, amount1)
             : (amount1, amount0);
         require(
             amountToken >= amountTokenMin,
-            "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
+            "SwapRouter: INSUFFICIENT_A_AMOUNT"
         );
-        require(
-            amountETH >= amountETHMin,
-            "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
-        );
+        require(amountETH >= amountETHMin, "SwapRouter: INSUFFICIENT_B_AMOUNT");
         TransferHelper.safeTransfer(_fromToken(msg.data), to, amountToken);
         IWETH(WETH).withdraw(amountETH);
         TransferHelper.safeTransferETH(to, amountETH);
@@ -339,7 +330,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         );
         {
             uint256 value = approveMax ? type(uint256).max : liquidity;
-            IUniswapV2Pair(pair).permit(
+            ISwapPair(pair).permit(
                 msg.sender,
                 address(this),
                 value,
@@ -350,10 +341,10 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
             );
         }
         {
-            IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+            ISwapPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         }
         {
-            (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
+            (uint256 amount0, uint256 amount1) = ISwapPair(pair).burn(to);
             (address token0, ) = sortTokens(
                 _fromToken(msg.data),
                 _destToken(msg.data)
@@ -365,14 +356,8 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
                     : (amount1, amount0);
             }
 
-            require(
-                amountA >= amountAMin,
-                "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
-            );
-            require(
-                amountB >= amountBMin,
-                "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
-            );
+            require(amountA >= amountAMin, "SwapRouter: INSUFFICIENT_A_AMOUNT");
+            require(amountB >= amountBMin, "SwapRouter: INSUFFICIENT_B_AMOUNT");
         }
     }
 
@@ -406,7 +391,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         );
         {
             uint256 value = approveMax ? type(uint256).max : liquidity;
-            IUniswapV2Pair(pair).permit(
+            ISwapPair(pair).permit(
                 msg.sender,
                 address(this),
                 value,
@@ -416,9 +401,9 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
                 s
             );
         }
-        IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        ISwapPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
         {
-            (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(to);
+            (uint256 amount0, uint256 amount1) = ISwapPair(pair).burn(to);
             (address token0, ) = sortTokens(_fromToken(msg.data), WETH);
             (amountToken, amountETH) = _fromToken(msg.data) == token0
                 ? (amount0, amount1)
@@ -426,12 +411,9 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         }
         require(
             amountToken >= amountTokenMin,
-            "UniswapV2Router: INSUFFICIENT_A_AMOUNT"
+            "SwapRouter: INSUFFICIENT_A_AMOUNT"
         );
-        require(
-            amountETH >= amountETHMin,
-            "UniswapV2Router: INSUFFICIENT_B_AMOUNT"
-        );
+        require(amountETH >= amountETHMin, "SwapRouter: INSUFFICIENT_B_AMOUNT");
         TransferHelper.safeTransfer(token, to, amountToken);
         IWETH(WETH).withdraw(amountETH);
         TransferHelper.safeTransferETH(to, amountETH);
@@ -454,7 +436,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
             address to = i < path.length - 2
                 ? pairFor(factory, output, path[i + 2])
                 : _to;
-            IUniswapV2Pair(pairFor(factory, input, output)).swap(
+            ISwapPair(pairFor(factory, input, output)).swap(
                 amount0Out,
                 amount1Out,
                 to,
@@ -485,7 +467,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         amounts = getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
-            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
+            "SwapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
         TransferHelper.safeTransferFrom(
             path[0],
@@ -519,7 +501,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         amounts = getAmountsIn(factory, amountOut, path);
         require(
             amounts[0] <= amountInMax,
-            "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
+            "SwapRouter: EXCESSIVE_INPUT_AMOUNT"
         );
         TransferHelper.safeTransferFrom(
             path[0],
@@ -543,11 +525,11 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
+        require(path[0] == WETH, "SwapRouter: INVALID_PATH");
         amounts = getAmountsOut(factory, msg.value, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
-            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
+            "SwapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(
@@ -569,7 +551,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
+        require(path[path.length - 1] == WETH, "SwapRouter: INVALID_PATH");
         if (initalTotalSupply[path[0]] != 0) {
             require(
                 initalTotalSupply[path[0]] == IERC20(path[0]).totalSupply(),
@@ -579,7 +561,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         amounts = getAmountsIn(factory, amountOut, path);
         require(
             amounts[0] <= amountInMax,
-            "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
+            "SwapRouter: EXCESSIVE_INPUT_AMOUNT"
         );
         TransferHelper.safeTransferFrom(
             path[0],
@@ -605,7 +587,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
+        require(path[path.length - 1] == WETH, "SwapRouter: INVALID_PATH");
         if (initalTotalSupply[path[0]] != 0) {
             require(
                 initalTotalSupply[path[0]] == IERC20(path[0]).totalSupply(),
@@ -615,7 +597,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         amounts = getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
-            "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
+            "SwapRouter: INSUFFICIENT_OUTPUT_AMOUNT"
         );
         TransferHelper.safeTransferFrom(
             path[0],
@@ -641,12 +623,9 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         ensure(deadline)
         returns (uint256[] memory amounts)
     {
-        require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
+        require(path[0] == WETH, "SwapRouter: INVALID_PATH");
         amounts = getAmountsIn(factory, amountOut, path);
-        require(
-            amounts[0] <= msg.value,
-            "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
-        );
+        require(amounts[0] <= msg.value, "SwapRouter: EXCESSIVE_INPUT_AMOUNT");
         IWETH(WETH).deposit{value: amounts[0]}();
         assert(
             IWETH(WETH).transfer(pairFor(factory, path[0], path[1]), amounts[0])
@@ -700,7 +679,7 @@ contract OurOwnRouterV1 is IUniswapV2Router01, parameterSetup {
         address tokenB
     ) internal view returns (uint256 reserveA, uint256 reserveB) {
         (address token0, ) = sortTokens(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1, ) = IUniswapV2Pair(
+        (uint256 reserve0, uint256 reserve1, ) = ISwapPair(
             pairFor(factoryPram, tokenA, tokenB)
         ).getReserves();
         (reserveA, reserveB) = tokenA == token0

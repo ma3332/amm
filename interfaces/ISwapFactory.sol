@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IUniswapV2Factory {
+interface ISwapFactory {
     event PairCreated(
         address indexed token0,
         address indexed token1,
