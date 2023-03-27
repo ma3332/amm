@@ -342,7 +342,11 @@ contract OurOwnRouterV1 is ISwapRouter01 {
         bytes32 s
     ) external virtual override returns (uint256 amountA, uint256 amountB) {
         require(msg.sender == tx.origin, "Not allowed");
-        address pair = pairFor(factory, tokenA, tokenB);
+        address pair = pairFor(
+            factory,
+            _fromToken(msg.data),
+            _destToken(msg.data)
+        );
         require(
             lockLPToken.lockedToken(_id).unlockTime > block.timestamp,
             "Not yet withdraw"
